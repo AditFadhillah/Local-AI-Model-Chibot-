@@ -1,0 +1,44 @@
+OS Name	Microsoft Windows 11 Home
+Version	10.0.26200 Build 26200
+Other OS Description 	Not Available
+OS Manufacturer	Microsoft Corporation
+System Name	ADITS_LAPTOP2
+System Manufacturer	LENOVO
+System Model	83K0
+System Type	x64-based PC
+System SKU	LENOVO_MT_83K0_BU_idea_FM_IdeaPad Slim 3 14IRH10
+Processor	13th Gen Intel(R) Core(TM) i5-13420H, 2100 Mhz, 8 Core(s), 12 Logical Processor(s)
+BIOS Version/Date	LENOVO QDCN34WW, 04/04/2026
+SMBIOS Version	3.4
+Embedded Controller Version	1.29
+BIOS Mode	UEFI
+BaseBoard Manufacturer	LENOVO
+BaseBoard Product	LNVNB161216
+BaseBoard Version	SDK0T76463 WIN
+Platform Role	Mobile
+Secure Boot State	On
+PCR7 Configuration	Elevation Required to View
+Windows Directory	C:\Windows
+System Directory	C:\Windows\system32
+Boot Device	\Device\HarddiskVolume1
+Locale	United States
+Hardware Abstraction Layer	Version = "10.0.26100.1"
+User Name	Adits_Laptop2\fadhi
+Time Zone	Romance Daylight Time
+Installed Physical Memory (RAM)	24,0 GB
+Total Physical Memory	23,7 GB
+Available Physical Memory	6,52 GB
+Total Virtual Memory	26,0 GB
+Available Virtual Memory	2,27 GB
+Page File Space	2,38 GB
+Page File	C:\pagefile.sys
+Kernel DMA Protection	On
+Virtualization-based security	Running
+Virtualization-based security Required Security Properties	Base Virtualization Support
+Virtualization-based security Available Security Properties	Base Virtualization Support, Secure Boot, DMA Protection, UEFI Code Readonly, SMM Security Mitigations 1.0, Mode Based Execution Control, APIC Virtualization
+Virtualization-based security Services Configured	Hypervisor enforced Code Integrity
+Virtualization-based security Services Running	Hypervisor enforced Code Integrity
+App Control for Business policy	Enforced
+App Control for Business user mode policy	Enforced
+Automatic Device Encryption Support	Elevation Required to View
+A hypervisor has been detected. Features required for Hyper-V will not be displayed.	
