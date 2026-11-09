@@ -77,7 +77,7 @@ function App() {
       const data = await response.json()
       setModels(data.models || [])
       if (data.models && data.models.length > 0) {
-        setSelectedModel(data.models[0].name)
+        setSelectedModel(data.default || data.models[0].name)
       }
       setError(null)
     } catch (err) {

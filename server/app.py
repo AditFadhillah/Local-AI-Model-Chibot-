@@ -7,8 +7,8 @@ FastAPI server that proxies chat requests to Ollama and serves model information
 import os
 import json
 import secrets
-from typing import List, Literal
-from contextlib import asynccontextmanager
+from typing import List, Literal, Optional
+from contextlib import aclosing, asynccontextmanager
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
@@ -21,8 +21,10 @@ from slowapi.util import get_remote_address
 import uvicorn
 from dotenv import load_dotenv
 
-# Load environment variables
+# Must run before importing chain, which reads env vars at import time
 load_dotenv()
+
+from chain import build_chain, stream_chat  # noqa: E402
 
 
 def _csv_env(name, default):
@@ -38,6 +40,7 @@ FASTAPI_HOST = os.getenv("FASTAPI_HOST", "127.0.0.1")
 API_KEY = os.getenv("API_KEY", "")
 ALLOWED_ORIGINS = _csv_env("ALLOWED_ORIGINS", "http://localhost:5173")
 ALLOWED_MODELS = _csv_env("ALLOWED_MODELS", "qwen3:8b")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "")
 RATE_LIMIT = os.getenv("RATE_LIMIT", "20/hour")
 MAX_MESSAGES = int(os.getenv("MAX_MESSAGES", 20))
 MAX_CONTENT_CHARS = int(os.getenv("MAX_CONTENT_CHARS", 10000))
@@ -104,6 +107,7 @@ class Model(BaseModel):
 
 class ModelsResponse(BaseModel):
     models: List[Model]
+    default: Optional[str] = None
 
 
 class HealthResponse(BaseModel):
@@ -157,7 +161,9 @@ async def get_models(_: None = Depends(verify_api_key)):
                 if model["name"] in ALLOWED_MODELS
             ]
 
-            return ModelsResponse(models=models)
+            names = {model.name for model in models}
+            default = OLLAMA_MODEL if OLLAMA_MODEL in names else None
+            return ModelsResponse(models=models, default=default)
     except Exception as e:
         print(f"Error fetching models: {e}")
         raise HTTPException(
@@ -180,36 +186,25 @@ async def chat(
         raise HTTPException(status_code=400, detail="Model not allowed")
 
     try:
-        # Prepare the messages in Ollama format
+        # Stateless: the client sends the full history on every request
         messages = [
             {"role": msg.role, "content": msg.content}
             for msg in payload.messages
         ]
+        chain = build_chain(payload.model, OLLAMA_BASE_URL, MAX_OUTPUT_TOKENS)
 
         async def generate():
             """
-            Stream the response from Ollama line by line.
+            Stream tokens from the LangChain chain as SSE chunks.
+            Stops generation if the client disconnects.
             """
             try:
-                async with httpx.AsyncClient(timeout=120.0) as client:
-                    async with client.stream(
-                        "POST",
-                        f"{OLLAMA_BASE_URL}/api/chat",
-                        json={
-                            "model": payload.model,
-                            "messages": messages,
-                            "stream": True,
-                            "options": {"num_predict": MAX_OUTPUT_TOKENS},
-                        },
-                    ) as response:
-                        response.raise_for_status()
-                        async for line in response.aiter_lines():
-                            if line:
-                                try:
-                                    chunk = json.loads(line)
-                                    yield f"data: {json.dumps(chunk)}\n"
-                                except json.JSONDecodeError:
-                                    pass
+                async with aclosing(stream_chat(chain, messages)) as tokens:
+                    async for token in tokens:
+                        if await request.is_disconnected():
+                            break
+                        chunk = {"message": {"role": "assistant", "content": token}}
+                        yield f"data: {json.dumps(chunk)}\n"
             except httpx.ReadTimeout:
                 yield f"data: {json.dumps({'error': 'Request timeout - model response took too long'})}\n"
             except Exception as e:

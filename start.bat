@@ -58,7 +58,7 @@ if not exist "client\node_modules" (
 REM Start backend
 echo.
 echo Starting FastAPI backend on http://localhost:8000...
-start cmd /k "cd server & venv\Scripts\activate.bat & python -m uvicorn app:app --reload --host 0.0.0.0 --port 8000"
+start cmd /k "cd server & venv\Scripts\activate.bat & python -m uvicorn app:app --reload --host 127.0.0.1 --port 8000"
 
 REM Wait a bit for backend to start
 timeout /t 3 /nobreak
