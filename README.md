@@ -31,7 +31,7 @@ A practical local AI setup and web application that chats with a locally running
                          │
 ┌────────────────────────▼────────────────────────────────────┐
 │                  Ollama (Local Model Runtime)                │
-│      Running AI models (e.g., qwen2.5-coder:7b)             │
+│      Running AI models (e.g., qwen3:8b)                     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -58,13 +58,10 @@ Download and install Ollama from https://ollama.ai
 Open a terminal and run one of:
 
 ```bash
-# Recommended (7B parameters, good balance of speed and quality)
-ollama pull qwen2.5-coder:7b
+# Recommended (8B parameters, good balance of speed and quality)
+ollama pull qwen3:8b
 
-# Fallback if system is limited (3B parameters, lightweight)
-ollama pull llama2:3b
-
-# Other options to explore
+# Other options (add each to ALLOWED_MODELS in server/.env before use)
 ollama pull mistral:7b
 ollama pull neural-chat:7b
 ```
@@ -112,12 +109,12 @@ npm install
 ```bash
 cd server
 venv\Scripts\activate
-python -m uvicorn app:app --reload --host 0.0.0.0 --port 8000
+python -m uvicorn app:app --reload --host 127.0.0.1 --port 8000
 ```
 
 You should see:
 ```
-INFO:     Uvicorn running on http://0.0.0.0:8000
+INFO:     Uvicorn running on http://127.0.0.1:8000
 ```
 
 #### Terminal 2 - Start Frontend (Vite + React)
@@ -178,7 +175,7 @@ net start ollama
 **Solution**:
 1. Verify you've pulled at least one model:
    ```bash
-   ollama pull qwen2.5-coder:7b
+   ollama pull qwen3:8b
    ```
 2. Check Ollama's models are accessible:
    ```bash
@@ -192,7 +189,7 @@ net start ollama
 
 **Solution**:
 1. Check if Ollama has enough RAM (8GB recommended)
-2. Try a smaller model: `ollama pull llama2:3b`
+2. Check free RAM; `qwen3:8b` needs about 8GB
 3. Check backend logs in Terminal 1 for errors
 4. Verify the model name matches: `ollama list`
 
@@ -311,7 +308,6 @@ curl http://localhost:8000/health
 
 Frontend:
 - Uses React 18 with Hooks
-- Axios for HTTP requests
 - React Markdown for rendering
 - React Syntax Highlighter for code blocks
 
@@ -347,7 +343,7 @@ Model responses appear progressively (word by word) for a smooth experience. A t
 
 ## Performance Tips
 
-1. **Smaller models are faster**: `llama2:3b` responds much faster than `qwen2.5-coder:7b` but with less capability
+1. **Smaller models are faster**: a model under 4B parameters responds faster than `qwen3:8b` but with less capability
 2. **Quit other apps**: Close browser tabs, Visual Studio, etc., to free up RAM
 3. **Close Ollama when not using**: Right-click system tray → Quit Ollama to free memory
 4. **Use GPU acceleration** (if available): Ollama auto-detects NVIDIA/AMD GPUs
@@ -366,10 +362,9 @@ Model responses appear progressively (word by word) for a smooth experience. A t
 
 ### Model Recommendations
 
-- **qwen2.5-coder:7b**: Best for coding tasks (requires 8GB+ RAM)
+- **qwen3:8b**: Default model, general-purpose (requires 8GB+ RAM)
 - **mistral:7b**: Good all-arounder (requires 8GB+ RAM)
 - **neural-chat:7b**: Conversational AI (requires 8GB+ RAM)
-- **llama2:3b**: Lightweight, fast fallback (works on 4GB RAM)
 - **phi:2.7b**: Very lightweight, suitable for older hardware
 
 ## Security Notes

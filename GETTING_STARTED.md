@@ -3,20 +3,15 @@
 ## 5-Minute Quick Start
 
 ### Prerequisites
-- ✅ Ollama installed and running
-- ✅ Python 3.10+ installed
-- ✅ Node.js 16+ installed
+- Ollama installed and running
+- Python 3.10+ installed
+- Node.js 16+ installed
 
 ### Steps
 
 #### 1. Pull a Model (first time only)
 ```bash
 ollama pull qwen3:8b
-```
-
-Or if you prefer a lightweight option:
-```bash
-ollama pull llama2:3b
 ```
 
 #### 2. Open Project Folder
@@ -62,16 +57,14 @@ Go to: `http://localhost:5173`
 
 Once you have the app running, you can easily switch models:
 
-1. Pull any model from Ollama:
+1. Pull the model from Ollama:
    ```bash
-   ollama pull qwen2.5:8b
    ollama pull mistral:7b
-   ollama pull neural-chat:7b
    ```
 
-2. The model will appear automatically in the dropdown on the app header
+2. Add the model name to `ALLOWED_MODELS` in `server/.env` (comma-separated, e.g. `qwen3:8b,mistral:7b`)
 
-3. Select it and start chatting - no restart needed!
+3. Restart the backend, then select the model in the dropdown
 
 ## Full Setup Instructions
 
@@ -98,15 +91,10 @@ git clone <repo-url> .
 
 ### 5. Pull First Model
 ```bash
-ollama pull qwen2.5:8b
+ollama pull qwen3:8b
 ```
 
 Wait for download to complete (5-15 minutes depending on internet speed). This is a general-purpose 8B parameter model with good speed and quality balance.
-
-Alternatively, for a lighter model:
-```bash
-ollama pull llama2:3b
-```
 
 ### 6. Setup Backend
 
@@ -141,7 +129,7 @@ python -m uvicorn app:app --reload
 
 Expected output:
 ```
-INFO:     Uvicorn running on http://0.0.0.0:8000
+INFO:     Uvicorn running on http://127.0.0.1:8000
 ```
 
 **Terminal 2 - Frontend:**
@@ -193,9 +181,9 @@ Open browser to: `http://localhost:5173`
 |-------|----------|
 | "Ollama not available" | Start Ollama app, wait 10 sec, refresh browser |
 | "Backend not available" | Check Terminal 1 is running FastAPI |
-| "No models in dropdown" | Pull a model: `ollama pull llama2:3b` |
+| "No models in dropdown" | Pull a model: `ollama pull qwen3:8b` |
 | "Port 8000 in use" | Change `FASTAPI_PORT` in `server/.env` |
-| "Response is slow" | Use smaller model: `ollama pull llama2:3b` |
+| "Response is slow" | Close other apps to free RAM; `qwen3:8b` needs about 8GB |
 
 ---
 

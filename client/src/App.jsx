@@ -139,36 +139,41 @@ function App() {
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let assistantContent = ''
+      let buffer = ''
+
+      const handleLine = (line) => {
+        if (!line.startsWith('data: ')) return
+        let chunk
+        try {
+          chunk = JSON.parse(line.slice(6))
+        } catch (e) {
+          return
+        }
+        if (chunk.error) throw new Error(chunk.error)
+        if (chunk.message && chunk.message.content) {
+          assistantContent += chunk.message.content
+          setMessages(prev => {
+            const last = prev[prev.length - 1]
+            if (last && last.role === 'assistant') {
+              return [...prev.slice(0, -1), { ...last, content: assistantContent }]
+            }
+            return [...prev, { role: 'assistant', content: assistantContent }]
+          })
+        }
+      }
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
 
-        const text = decoder.decode(value)
-        const lines = text.split('\n')
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const chunk = JSON.parse(line.slice(6))
-              if (chunk.message && chunk.message.content) {
-                assistantContent += chunk.message.content
-                setMessages(prev => {
-                  const updated = [...prev]
-                  if (updated[updated.length - 1].role === 'assistant') {
-                    updated[updated.length - 1].content = assistantContent
-                  } else {
-                    updated.push({ role: 'assistant', content: assistantContent })
-                  }
-                  return updated
-                })
-              }
-            } catch (e) {
-              // Skip invalid JSON lines
-            }
-          }
-        }
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop()
+        lines.forEach(handleLine)
       }
+
+      buffer += decoder.decode()
+      buffer.split('\n').forEach(handleLine)
     } catch (err) {
       if (err.name === 'AbortError') {
         console.log('Generation stopped by user')

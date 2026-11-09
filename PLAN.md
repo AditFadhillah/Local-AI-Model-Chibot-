@@ -6,7 +6,7 @@ Expand the local chat assistant so the model runs on this machine, the logic is 
 
 ```mermaid
 flowchart LR
-    Browser["Web UI (React, public URL)"] -->|HTTPS| Tunnel["Public tunnel (Cloudflare Tunnel)"]
+    Browser["Web UI (React, public URL)"] -->|HTTPS| Tunnel["Public tunnel (Tailscale Funnel)"]
     Tunnel -->|localhost:8000| API["FastAPI (web API layer)"]
     API --> Chain["LangChain (logic layer)"]
     Chain -->|localhost:11434| Ollama["Ollama (model layer)"]
@@ -14,10 +14,10 @@ flowchart LR
 
 | Layer | Technology | Responsibility |
 |-------|-----------|----------------|
-| Model | Ollama | Runs the local LLM (e.g. `qwen2.5:8b`) |
+| Model | Ollama | Runs the local LLM (e.g. `qwen3:8b`) |
 | Logic | LangChain (`langchain-ollama`) | Prompts, message history, streaming, chains |
 | Web API | FastAPI | Auth, validation, streaming endpoints, rate limits |
-| Public access | Cloudflare Tunnel | Exposes FastAPI over HTTPS without opening router ports |
+| Public access | Tailscale Funnel | Exposes FastAPI over HTTPS without opening router ports |
 | Frontend | React + Vite on GitHub Pages | Chat UI, built and deployed by GitHub Actions |
 
 ## Public Access Options (no domain)
@@ -60,6 +60,30 @@ The shared key is not secret from visitors, so these controls do the real protec
 3. Add rate limiting per IP (e.g. `slowapi`) and a maximum message count and content length.
 4. Add a `.env.example` entry for every new setting.
 
+### API Responses (Phase 1 reference)
+
+Backend responses (`server/app.py`):
+
+| Status | Trigger | Detail message |
+|--------|---------|----------------|
+| 401 | Missing or wrong `X-API-Key` | `Invalid or missing API key` |
+| 400 | Model not in `ALLOWED_MODELS` | `Model not allowed` |
+| 422 | Too many messages, content too long, or unknown fields | Pydantic validation error (no custom text) |
+| 429 | Rate limit exceeded (`RATE_LIMIT`) | slowapi default (no custom text) |
+| 503 | Ollama unreachable when listing models | `Could not fetch models from Ollama. Is Ollama running?` |
+| 500 | Unexpected chat error | `Error: <exception text>` |
+| SSE `error` | Model response timeout | `Request timeout - model response took too long` |
+| SSE `error` | Streaming failure | Raw exception text |
+
+Client messages (`client/src/App.jsx`):
+
+| Status | Shown to user |
+|--------|---------------|
+| 401 | `Invalid API key.` |
+| 422 | `Message too long or chat history too large. Shorten your message or clear the chat.` |
+| 429 | `Rate limit reached. Please try again later.` |
+| Other | `HTTP error! status: <code>` |
+
 ## Phase 2: Add LangChain Logic Layer
 
 1. Add `langchain`, `langchain-core`, and `langchain-ollama` to `server/requirements.txt`.
@@ -72,7 +96,7 @@ The shared key is not secret from visitors, so these controls do the real protec
 
 1. Keep Ollama as the runtime. Confirm `ollama serve` binds only to localhost.
 2. Use `OLLAMA_BASE_URL` in LangChain's `ChatOllama(base_url=...)` so the model can be swapped by config.
-3. Set a default model in `.env` (e.g. `OLLAMA_MODEL=qwen2.5:8b`) and keep the model selector working.
+3. Set a default model in `.env` (e.g. `OLLAMA_MODEL=qwen3:8b`) and keep the model selector working.
 
 ## Phase 4: Frontend on GitHub Pages
 
@@ -119,7 +143,7 @@ The shared key is not secret from visitors, so these controls do the real protec
 - [x] Chat history: deferred until user accounts are added (future phase).
 - [x] Availability: the PC runs the server only when the owner starts it. Start and stop manually.
 - [x] Message format: plain text in both directions (no HTML or markdown rendered from the server).
-- [ ] Usage limits: requests per hour per client (set a default when implementing Phase 1).
+- [x] Usage limits: requests per hour per client (set a default when implementing Phase 1).
 
 ## Definition of Done
 

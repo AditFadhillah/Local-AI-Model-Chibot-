@@ -37,10 +37,10 @@ FASTAPI_HOST = os.getenv("FASTAPI_HOST", "127.0.0.1")
 # Security settings
 API_KEY = os.getenv("API_KEY", "")
 ALLOWED_ORIGINS = _csv_env("ALLOWED_ORIGINS", "http://localhost:5173")
-ALLOWED_MODELS = _csv_env("ALLOWED_MODELS", "qwen2.5:8b")
+ALLOWED_MODELS = _csv_env("ALLOWED_MODELS", "qwen3:8b")
 RATE_LIMIT = os.getenv("RATE_LIMIT", "20/hour")
 MAX_MESSAGES = int(os.getenv("MAX_MESSAGES", 20))
-MAX_CONTENT_CHARS = int(os.getenv("MAX_CONTENT_CHARS", 4000))
+MAX_CONTENT_CHARS = int(os.getenv("MAX_CONTENT_CHARS", 10000))
 MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", 512))
 
 if not API_KEY:
