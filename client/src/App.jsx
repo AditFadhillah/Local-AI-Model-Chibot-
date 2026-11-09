@@ -13,6 +13,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [ollamaAvailable, setOllamaAvailable] = useState(false)
+  const [apiKey, setApiKey] = useState(() => sessionStorage.getItem('chibotApiKey') || '')
   const messagesEndRef = useRef(null)
   const abortControllerRef = useRef(null)
 
@@ -33,11 +34,15 @@ function App() {
     localStorage.setItem('chatHistory', JSON.stringify(messages))
   }, [messages])
 
-  // Fetch available models on mount
+  // Check server health on mount
   useEffect(() => {
-    fetchModels()
     checkOllamaHealth()
   }, [])
+
+  // Fetch models once an API key is available
+  useEffect(() => {
+    if (apiKey) fetchModels()
+  }, [apiKey])
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -56,9 +61,19 @@ function App() {
     }
   }
 
+  const saveApiKey = (key) => {
+    sessionStorage.setItem('chibotApiKey', key)
+    setApiKey(key)
+  }
+
   const fetchModels = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/models`)
+      const response = await fetch(`${API_BASE_URL}/api/models`, {
+        headers: { 'X-API-Key': apiKey },
+      })
+      if (!response.ok) {
+        throw new Error(response.status === 401 ? 'Invalid API key.' : `HTTP error! status: ${response.status}`)
+      }
       const data = await response.json()
       setModels(data.models || [])
       if (data.models && data.models.length > 0) {
@@ -66,7 +81,7 @@ function App() {
       }
       setError(null)
     } catch (err) {
-      setError('Failed to fetch models. Is the backend running?')
+      setError(err.message || 'Failed to fetch models. Is the backend running?')
       console.error('Error fetching models:', err)
     }
   }
@@ -80,7 +95,7 @@ function App() {
 
   const handleSendMessage = async (e) => {
     e.preventDefault()
-    if (!input.trim() || !selectedModel || loading) return
+    if (!input.trim() || !selectedModel || loading || !apiKey) return
 
     if (!ollamaAvailable) {
       setError('Ollama is not available. Please start Ollama and refresh the page.')
@@ -102,17 +117,23 @@ function App() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-API-Key': apiKey,
           },
           signal: abortControllerRef.current.signal,
           body: JSON.stringify({
             model: selectedModel,
-            messages: [...messages, userMessage]
+            messages: [...messages, userMessage].slice(-20)
           })
         }
       )
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const statusMessages = {
+          401: 'Invalid API key.',
+          422: 'Message too long or chat history too large. Shorten your message or clear the chat.',
+          429: 'Rate limit reached. Please try again later.',
+        }
+        throw new Error(statusMessages[response.status] || `HTTP error! status: ${response.status}`)
       }
 
       const reader = response.body.getReader()
@@ -186,6 +207,20 @@ function App() {
 
       {error && <div className="error-banner">{error}</div>}
 
+      {!apiKey && (
+        <div className="warning-banner">
+          <input
+            type="password"
+            placeholder="Enter API key and press Enter"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                saveApiKey(e.currentTarget.value.trim())
+              }
+            }}
+          />
+        </div>
+      )}
+
       {!ollamaAvailable && (
         <div className="warning-banner">
           ⚠️ Ollama is not running. Please start Ollama to use the chat.
@@ -228,7 +263,7 @@ function App() {
             }
           }}
           placeholder="Type your message... (Shift+Enter for new line)"
-          disabled={loading || !ollamaAvailable}
+          disabled={loading || !ollamaAvailable || !apiKey}
           rows="3"
         />
         <div className="form-actions">
@@ -243,7 +278,7 @@ function App() {
           ) : (
             <button
               type="submit"
-              disabled={!input.trim() || !ollamaAvailable || !selectedModel}
+              disabled={!input.trim() || !ollamaAvailable || !selectedModel || !apiKey}
               className="send-button"
             >
               Send

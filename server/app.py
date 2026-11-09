@@ -6,24 +6,47 @@ FastAPI server that proxies chat requests to Ollama and serves model information
 
 import os
 import json
-from typing import List
+import secrets
+from typing import List, Literal
 from contextlib import asynccontextmanager
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 import uvicorn
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
+
+def _csv_env(name, default):
+    return [item.strip() for item in os.getenv(name, default).split(",") if item.strip()]
+
+
 # Configuration
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 FASTAPI_PORT = int(os.getenv("FASTAPI_PORT", 8000))
-FASTAPI_HOST = os.getenv("FASTAPI_HOST", "localhost")
+FASTAPI_HOST = os.getenv("FASTAPI_HOST", "127.0.0.1")
+
+# Security settings
+API_KEY = os.getenv("API_KEY", "")
+ALLOWED_ORIGINS = _csv_env("ALLOWED_ORIGINS", "http://localhost:5173")
+ALLOWED_MODELS = _csv_env("ALLOWED_MODELS", "qwen2.5:8b")
+RATE_LIMIT = os.getenv("RATE_LIMIT", "20/hour")
+MAX_MESSAGES = int(os.getenv("MAX_MESSAGES", 20))
+MAX_CONTENT_CHARS = int(os.getenv("MAX_CONTENT_CHARS", 4000))
+MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", 512))
+
+if not API_KEY:
+    raise RuntimeError("API_KEY is not set. Add it to server/.env (see server/.env.example).")
+
+limiter = Limiter(key_func=get_remote_address)
 
 # Global state for Ollama availability check
 ollama_available = True
@@ -47,25 +70,32 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Add CORS middleware
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Restrict CORS to the configured frontend origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for local development
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "X-API-Key"],
 )
 
 
 # Pydantic models
 class Message(BaseModel):
-    role: str
-    content: str
+    model_config = ConfigDict(extra="forbid")
+
+    role: Literal["user", "assistant"]
+    content: str = Field(max_length=MAX_CONTENT_CHARS)
 
 
 class ChatRequest(BaseModel):
-    model: str
-    messages: List[Message]
+    model_config = ConfigDict(extra="forbid")
+
+    model: str = Field(max_length=100)
+    messages: List[Message] = Field(min_length=1, max_length=MAX_MESSAGES)
 
 
 class Model(BaseModel):
@@ -79,6 +109,14 @@ class ModelsResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     ollama_available: bool
+
+
+def verify_api_key(x_api_key: str = Header(default="")):
+    """
+    Reject requests whose X-API-Key header does not match the configured key.
+    """
+    if not secrets.compare_digest(x_api_key.encode(), API_KEY.encode()):
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 
 # Routes
@@ -102,7 +140,7 @@ async def health_check():
 
 
 @app.get("/api/models", response_model=ModelsResponse)
-async def get_models():
+async def get_models(_: None = Depends(verify_api_key)):
     """
     Fetch the list of available models from Ollama.
     """
@@ -116,6 +154,7 @@ async def get_models():
             models = [
                 Model(name=model["name"])
                 for model in data.get("models", [])
+                if model["name"] in ALLOWED_MODELS
             ]
 
             return ModelsResponse(models=models)
@@ -128,18 +167,23 @@ async def get_models():
 
 
 @app.post("/api/chat")
-async def chat(request: ChatRequest):
+@limiter.limit(RATE_LIMIT)
+async def chat(
+    request: Request,
+    payload: ChatRequest,
+    _: None = Depends(verify_api_key),
+):
     """
     Stream chat responses from Ollama.
     """
-    if not request.model:
-        raise HTTPException(status_code=400, detail="Model not specified")
+    if payload.model not in ALLOWED_MODELS:
+        raise HTTPException(status_code=400, detail="Model not allowed")
 
     try:
         # Prepare the messages in Ollama format
         messages = [
             {"role": msg.role, "content": msg.content}
-            for msg in request.messages
+            for msg in payload.messages
         ]
 
         async def generate():
@@ -151,7 +195,12 @@ async def chat(request: ChatRequest):
                     async with client.stream(
                         "POST",
                         f"{OLLAMA_BASE_URL}/api/chat",
-                        json={"model": request.model, "messages": messages, "stream": True},
+                        json={
+                            "model": payload.model,
+                            "messages": messages,
+                            "stream": True,
+                            "options": {"num_predict": MAX_OUTPUT_TOKENS},
+                        },
                     ) as response:
                         response.raise_for_status()
                         async for line in response.aiter_lines():
