@@ -199,7 +199,7 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="header-content">
-          <img src="/chibot_icon.png" alt="Chibot" className="chibot-icon" />
+          <img src={`${import.meta.env.BASE_URL}chibot_icon.png`} alt="Chibot" className="chibot-icon" />
           <h1>Chibot</h1>
         </div>
         <ModelSelector
