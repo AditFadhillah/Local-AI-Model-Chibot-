@@ -257,8 +257,23 @@ Edit `server/.env` to customize:
 OLLAMA_BASE_URL=http://localhost:11434
 
 # FastAPI server configuration
-FASTAPI_HOST=localhost
+FASTAPI_HOST=127.0.0.1
 FASTAPI_PORT=8000
+
+# Shared secret the browser sends as the API key (never commit this file)
+API_KEY=change-me
+
+# Origins allowed by CORS (comma-separated). Include the GitHub Pages origin when online.
+ALLOWED_ORIGINS=http://localhost:5173,https://aditfadhillah.github.io
+
+# Models the API will serve (comma-separated) and the default model
+ALLOWED_MODELS=qwen3:8b
+OLLAMA_MODEL=qwen3:8b
+
+# Rate limit per client IP, and input limits
+RATE_LIMIT=20/hour
+MAX_MESSAGES=20
+MAX_CONTENT_CHARS=10000
 
 # Maximum tokens the model may generate per reply
 MAX_OUTPUT_TOKENS=2048
@@ -267,18 +282,13 @@ MAX_OUTPUT_TOKENS=2048
 STATUS_CACHE_SECONDS=30
 ```
 
-### Frontend Proxy
+### Frontend Backend URL
 
-Edit `client/vite.config.js` to change backend URL for production:
+The browser reads the backend address from `VITE_API_BASE_URL`:
 
-```javascript
-proxy: {
-  '/api': {
-    target: 'http://your-server:8000',  // Change here
-    changeOrigin: true
-  }
-}
-```
+- **Local development:** not set, so it uses `http://localhost:8000`.
+- **GitHub Pages:** set the repository variable `VITE_API_BASE_URL` (Settings → Secrets and variables → Actions → Variables) to your Funnel URL, for example `https://adits-laptop2.tailc3da84.ts.net`. The deploy workflow passes it into the build.
+
 
 ## Development
 
@@ -301,11 +311,18 @@ local-ai-assistant/
 │   └── package.json
 │
 ├── server/                    # Python FastAPI backend
-│   ├── app.py                # Main FastAPI application
-│   ├── requirements.txt       # Python dependencies
-│   ├── .env                  # Environment configuration
+│   ├── app.py                # FastAPI app: routes, auth, rate limit, logging
+│   ├── chain.py              # LangChain prompt and streaming call to Ollama
+│   ├── requirements.txt      # Python dependencies
+│   ├── .env                  # Environment configuration (git-ignored)
+│   ├── logs/                 # chibot.log (git-ignored)
 │   └── venv/                 # Virtual environment (after setup)
 │
+├── local-start.bat           # Local development launcher
+├── launch-start.bat          # Online launcher (backend + Funnel)
+├── start-server.bat          # Backend-only launcher
+├── stop-server.bat           # Stops Chibot windows and resets the Funnel
+├── GETTING_STARTED.md        # Step-by-step setup
 ├── README.md                 # This file
 └── .gitignore
 ```

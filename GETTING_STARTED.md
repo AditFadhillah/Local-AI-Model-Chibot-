@@ -69,6 +69,20 @@ Go to: `http://localhost:5173`
 
 ---
 
+## Going Online (GitHub Pages)
+
+The public site runs on GitHub Pages, and the backend stays on your PC behind Tailscale Funnel.
+
+1. Run `launch-start.bat`. It starts the backend and the Funnel in their own windows.
+2. Open the site: `https://aditfadhillah.github.io/Local-AI-Model-Chibot-/`
+3. When you are done, run `stop-server.bat`. It closes the windows and removes the public URL, so the site is offline immediately.
+
+The site only works while the PC is on and the server is running. Check the public backend with `https://adits-laptop2.tailc3da84.ts.net/health`.
+
+Logs for public requests show `forwarded=` and `origin=` fields. See the Logs section in [README.md](README.md).
+
+---
+
 ## Switching Models
 
 Once you have the app running, you can easily switch models:
