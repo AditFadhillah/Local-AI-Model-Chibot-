@@ -1,6 +1,6 @@
 @echo off
-REM Local AI Assistant - Windows Startup Script
-REM This script starts both the FastAPI backend and Vite frontend
+REM Local AI Assistant - Local development launcher
+REM Starts the FastAPI backend (localhost only) and the Vite dev server.
 
 echo.
 echo ========================================
@@ -58,15 +58,15 @@ if not exist "client\node_modules" (
 REM Start backend
 echo.
 echo Starting FastAPI backend on http://localhost:8000...
-start cmd /k "cd server & venv\Scripts\activate.bat & python -m uvicorn app:app --reload --host 127.0.0.1 --port 8000"
+start "Chibot API" cmd /k "cd server & venv\Scripts\activate.bat & python -m uvicorn app:app --reload --host 127.0.0.1 --port 8000"
 
 REM Wait a bit for backend to start
-timeout /t 3 /nobreak
+timeout /t 3 /nobreak >nul
 
 REM Start frontend
 echo.
 echo Starting Vite frontend on http://localhost:5173...
-start cmd /k "cd client & npm run dev"
+start "Chibot Client" cmd /k "cd client & npm run dev"
 
 echo.
 echo ========================================
@@ -77,8 +77,6 @@ echo Frontend:  http://localhost:5173
 echo Backend:   http://localhost:8000
 echo Ollama:    http://localhost:11434
 echo.
-echo Open your browser and navigate to: http://localhost:5173
-echo.
-echo Press CTRL+C in either terminal to stop the server
+echo Close the "Chibot API" and "Chibot Client" windows to stop the servers.
 echo.
 pause

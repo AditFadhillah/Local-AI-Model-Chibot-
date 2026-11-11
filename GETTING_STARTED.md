@@ -20,8 +20,24 @@ cd c:\Users\<YourUsername>\PROJECTS\Local-AI-Model-Chibot
 ```
 
 #### 3. Run the Startup Script
+Local development (backend and Vite frontend):
 ```bash
-start.bat
+local-start.bat
+```
+
+Online (backend and Tailscale Funnel, for the GitHub Pages site):
+```bash
+launch-start.bat
+```
+
+Backend only (fallback, no frontend or Funnel):
+```bash
+start-server.bat
+```
+
+To stop everything (closes the Chibot windows and removes the public URL):
+```bash
+stop-server.bat
 ```
 
 Or manually in two terminals:
@@ -164,6 +180,8 @@ Open browser to: `http://localhost:5173`
    ```
    Should return: `{"status":"ok","ollama_available":true}`
 
+   Each chat is logged in the "Chibot API" window and in `server/logs/chibot.log`, one summary line per request.
+
 3. **Frontend** - Open `http://localhost:5173` in browser
    - Should load without errors
    - Model dropdown should show available models
@@ -183,7 +201,7 @@ Open browser to: `http://localhost:5173`
 | "Backend not available" | Check Terminal 1 is running FastAPI |
 | "No models in dropdown" | Pull a model: `ollama pull qwen3:8b` |
 | "Port 8000 in use" | Change `FASTAPI_PORT` in `server/.env` |
-| "Response is slow" | Close other apps to free RAM; `qwen3:8b` needs about 8GB |
+| "Response is slow" | Close other apps to free RAM; `qwen3:8b` needs about 8GB. Laptop CPU/GPU limits can add 30+ seconds before the first token |
 
 ---
 
@@ -204,7 +222,10 @@ Local-AI-Model-Chibot/
 ├── server/              ← Python backend (port 8000)
 ├── README.md            ← Full documentation
 ├── GETTING_STARTED.md   ← This file
-└── start.bat            ← Windows startup script
+├── local-start.bat      ← Local development launcher
+├── launch-start.bat     ← Online launcher (backend + Funnel)
+├── start-server.bat     ← Backend-only fallback launcher
+└── stop-server.bat      ← Stops Chibot windows and resets the Funnel
 ```
 
 ---

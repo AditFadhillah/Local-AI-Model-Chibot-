@@ -104,6 +104,19 @@ npm install
 
 ### 6. Start the Application
 
+The easiest way is to use the launchers in the project root:
+
+| Launcher | What it starts |
+|----------|----------------|
+| `local-start.bat` | Backend (with auto-reload) and the Vite dev server, for local use at `http://localhost:5173` |
+| `launch-start.bat` | Backend and the Tailscale Funnel, so the GitHub Pages site can reach it |
+| `start-server.bat` | Backend only, on `http://127.0.0.1:8000` (fallback if the other launchers fail) |
+| `stop-server.bat` | Closes the Chibot windows and resets the Funnel (removes the public URL) |
+
+Each launcher opens its own windows titled "Chibot API", "Chibot Client" or "Chibot Funnel". Close those windows or run `stop-server.bat` to stop.
+
+The manual steps below do the same thing in separate terminals.
+
 #### Terminal 1 - Start Backend (FastAPI)
 
 ```bash
@@ -246,6 +259,12 @@ OLLAMA_BASE_URL=http://localhost:11434
 # FastAPI server configuration
 FASTAPI_HOST=localhost
 FASTAPI_PORT=8000
+
+# Maximum tokens the model may generate per reply
+MAX_OUTPUT_TOKENS=2048
+
+# How long /health and /api/status reuse the last Ollama check (seconds)
+STATUS_CACHE_SECONDS=30
 ```
 
 ### Frontend Proxy
@@ -386,13 +405,30 @@ Model responses appear progressively (word by word) for a smooth experience. A t
 
 ### Logs
 
-**Backend logs** appear in Terminal 1 where you ran the FastAPI server.
+**Backend logs** appear in the "Chibot API" window (or Terminal 1 for manual starts). They are also written to `server/logs/chibot.log`, which is git-ignored.
+
+Each request gets a short `req=` ID. A chat request logs one summary line when it finishes:
+
+```
+req=d46e407c chat model=qwen3:8b messages=5 prompt_chars=1116 ttft=40047ms total=47292ms chunks=45 output_chars=240 outcome=completed
+```
+
+- `ttft` is the time to the first token. `total` is the time to the end of the reply.
+- `outcome` is `completed` or an error reason.
+- The `forwarded` and `origin` fields show the client IP and browser origin for requests that came through the Funnel.
 
 **Browser console** (F12 → Console tab) shows frontend errors.
 
 **Ollama logs**:
 - Windows: Check Ollama app window (Alt+Tab to switch)
 - Or: `%APPDATA%\Ollama\logs\` 
+
+### Health and Status
+
+- `GET /health` returns `{"status":"ok","ollama_available":true}`.
+- `GET /api/status` returns health, the model list and the default model in one call. The web app uses it at startup.
+
+Both use a cached Ollama check that refreshes every `STATUS_CACHE_SECONDS`.
 
 ### Getting Help
 

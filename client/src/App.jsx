@@ -34,14 +34,10 @@ function App() {
     localStorage.setItem('chatHistory', JSON.stringify(messages))
   }, [messages])
 
-  // Check server health on mount
+  // Without a key only /health is available. With a key, /api/status returns health and models together.
   useEffect(() => {
-    checkOllamaHealth()
-  }, [])
-
-  // Fetch models once an API key is available
-  useEffect(() => {
-    if (apiKey) fetchModels()
+    if (apiKey) fetchStatus()
+    else checkOllamaHealth()
   }, [apiKey])
 
   // Scroll to bottom when messages change
@@ -66,23 +62,25 @@ function App() {
     setApiKey(key)
   }
 
-  const fetchModels = async () => {
+  const fetchStatus = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/models`, {
+      const response = await fetch(`${API_BASE_URL}/api/status`, {
         headers: { 'X-API-Key': apiKey },
       })
       if (!response.ok) {
         throw new Error(response.status === 401 ? 'Invalid API key.' : `HTTP error! status: ${response.status}`)
       }
       const data = await response.json()
+      setOllamaAvailable(data.ollama_available)
       setModels(data.models || [])
       if (data.models && data.models.length > 0) {
         setSelectedModel(data.default || data.models[0].name)
       }
       setError(null)
     } catch (err) {
-      setError(err.message || 'Failed to fetch models. Is the backend running?')
-      console.error('Error fetching models:', err)
+      setOllamaAvailable(false)
+      setError(err.message || 'Failed to fetch status. Is the backend running?')
+      console.error('Error fetching status:', err)
     }
   }
 

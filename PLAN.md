@@ -128,11 +128,11 @@ Client messages (`client/src/App.jsx`):
 
 ## Phase 6: Operations
 
-1. Add a `start.bat` update that launches Ollama check, FastAPI, and the tunnel together.
-2. Log requests and errors to a file in `server/logs/`.
-3. Document the setup in `README.md` and `GETTING_STARTED.md` (remove emojis, keep Windows-first).
-4. Keep `.env` out of Git (already in `.gitignore`).
-5. Add `start-server.bat` (checks Ollama, starts FastAPI and the tunnel) and `stop-server.bat` (stops FastAPI and the tunnel). The site is offline whenever the PC is off or `stop-server.bat` has run.
+1. [x] Launchers: `start.bat` was replaced by `local-start.bat` (dev) and `launch-start.bat` (Ollama check, FastAPI, Funnel).
+2. [x] Log requests and errors to a file in `server/logs/`.
+3. [x] Document the setup in `README.md` and `GETTING_STARTED.md` (remove emojis, keep Windows-first).
+4. [x] Keep `.env` out of Git (already in `.gitignore`).
+5. [ ] Add `start-server.bat` (checks Ollama, starts FastAPI and the tunnel) and `stop-server.bat` (stops FastAPI and the tunnel). `start-server.bat` is backend only; `stop-server.bat` still needs a live test. The site is offline whenever the PC is off or `stop-server.bat` has run.
 6. Plain text contract: the browser sends `{"messages": [{"role": "user", "content": "..."}]}` and reads the SSE `data:` text chunks as plain strings. Both sides treat content as text, not markup.
 
 ## Decisions
@@ -147,9 +147,9 @@ Client messages (`client/src/App.jsx`):
 
 ## Definition of Done
 
-- Chat works from a public URL on a device outside the home network.
-- Ollama is not reachable from the internet.
-- Unauthenticated and over-limit requests are rejected.
-- Stopping the server takes the public API offline immediately.
-- Stop generation works end to end (client abort stops server-side generation).
-- Setup is documented and reproducible from `GETTING_STARTED.md`.
+- [x] Chat works from a public URL on a device outside the home network.
+- [ ] Ollama is not reachable from the internet.
+- [ ] Unauthenticated and over-limit requests are rejected through the public URL.
+- [ ] Stopping the server takes the public API offline immediately (needs a `stop-server.bat` test).
+- [ ] Stop generation works end to end (client abort stops server-side generation).
+- [ ] Setup is documented and reproducible from `GETTING_STARTED.md`.
