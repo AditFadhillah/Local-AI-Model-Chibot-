@@ -75,6 +75,8 @@ if not logger.handlers:
     logger.addHandler(_console_handler)
 
 
+_started_at = time.monotonic()
+
 # Cached result of the last Ollama /api/tags call: (checked_at, available, model_names)
 _ollama_status_cache: tuple[float, bool, list[str]] | None = None
 _ollama_status_lock = asyncio.Lock()
@@ -201,6 +203,9 @@ class ModelsResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     ollama_available: bool
+    default_model: str
+    default_model_available: bool
+    uptime_seconds: int
 
 
 class StatusResponse(BaseModel):
@@ -235,10 +240,17 @@ def default_model(models: list[Model]) -> Optional[str]:
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """
-    Check if the server and Ollama are available. Ollama is checked at most once per STATUS_CACHE_SECONDS.
+    Report whether Ollama is up and the default model is installed. Public, so it returns no model list.
     """
-    available, _ = await get_ollama_status()
-    return HealthResponse(status="ok", ollama_available=available)
+    available, names = await get_ollama_status()
+    model_ready = OLLAMA_MODEL in names
+    return HealthResponse(
+        status="ok" if available and model_ready else "degraded",
+        ollama_available=available,
+        default_model=OLLAMA_MODEL,
+        default_model_available=model_ready,
+        uptime_seconds=int(time.monotonic() - _started_at),
+    )
 
 
 @app.get("/api/status", response_model=StatusResponse)

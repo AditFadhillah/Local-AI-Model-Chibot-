@@ -442,7 +442,7 @@ req=d46e407c chat model=qwen3:8b messages=5 prompt_chars=1116 ttft=40047ms total
 
 ### Health and Status
 
-- `GET /health` returns `{"status":"ok","ollama_available":true}`.
+- `GET /health` returns `{"status":"ok","ollama_available":true,"default_model":"qwen3:8b","default_model_available":true,"uptime_seconds":42}`. `status` is `"degraded"` when Ollama is down or the default model isn't installed. It needs no API key.
 - `GET /api/status` returns health, the model list and the default model in one call. The web app uses it at startup.
 
 Both use a cached Ollama check that refreshes every `STATUS_CACHE_SECONDS`.
@@ -469,4 +469,3 @@ This project is for personal use. Ollama and the models have their own licenses.
 
 ---
 
-**Enjoy your local AI assistant!** 🚀

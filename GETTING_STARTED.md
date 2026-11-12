@@ -192,7 +192,7 @@ Open browser to: `http://localhost:5173`
    ```bash
    curl http://localhost:8000/health
    ```
-   Should return: `{"status":"ok","ollama_available":true}`
+   Should return: `{"status":"ok","ollama_available":true,"default_model":"qwen3:8b","default_model_available":true,"uptime_seconds":42}`
 
    Each chat is logged in the "Chibot API" window and in `server/logs/chibot.log`, one summary line per request.
 
